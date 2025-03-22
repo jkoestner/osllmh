@@ -221,6 +221,9 @@ class QdrantVS:
             if not scroll_position:
                 break
 
+        # sort by file path
+        files_info = sorted(files_info, key=lambda x: x["file_path"])
+
         return files_info
 
     def create_index(self, documents):
@@ -320,14 +323,26 @@ class QdrantVS:
             The ID of the document to delete.
 
         """
-        logger.info(f"Deleting document with doc_id: {doc_id}")
+        # get file path
+        file_list = self.list_files_from_index()
+        file_path = None
+        for file in file_list:
+            if file["doc_id"] == doc_id:
+                file_path = file["file_path"]
+                break
+        if file_path is None:
+            logger.warning(f"Document with ID {doc_id} not found in index.")
+            return
+        else:
+            logger.info(f"Deleting document with file path: {file_path}")
 
+        # delete document
         self.client.delete(
             collection_name=self.collection_name,
             points_selector=rest.Filter(
                 must=[
                     rest.FieldCondition(
-                        key="doc_id", match=rest.MatchValue(value=doc_id)
+                        key="file_path", match=rest.MatchValue(value=file_path)
                     )
                 ]
             ),
